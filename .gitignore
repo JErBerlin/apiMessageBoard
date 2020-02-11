@@ -5,6 +5,12 @@
 *.so
 *.dylib
 
+# Data input files
+*.csv
+
+# tmp dir
+tmp/
+
 # IDE
 .idea
 
