@@ -2,16 +2,17 @@ package main
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"io"
 	"log"
 	"os"
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type Message struct {
@@ -19,7 +20,7 @@ type Message struct {
 	Name			string
 	Email			string
 	Text			string
-	CreationTime	string // time.Time
+	CreationTime	time.Time
 }
 
 // PrintFields return field names as they appear in the type definition
@@ -74,16 +75,19 @@ func readMessagesFromFile(pathToFile string) []Message {
 		if err == io.EOF {
 			break
 		}
-		if err != nil {
-			log.Fatal(err)
-		}
+		check(err)
+
+		// TODO format creation time as separate func
+		form := "2006-01-02T15:04:05-07:00"
+		t, err := time.Parse(form, record[4])
+		check(err)
 
 		newMessage := Message {
 			Id: 			record[0],
 			Name: 			record[1],
 			Email:			record[2],
 			Text: 			record[3],
-			CreationTime: 	record[4],
+			CreationTime: 	t,
 		}
 		messages = append(messages, newMessage)
 	}
@@ -93,22 +97,15 @@ func readMessagesFromFile(pathToFile string) []Message {
 
 func main() {
 	messages := readMessagesFromFile("./messages.csv")
+	// message := messages[0]
 
-	fmt.Printf("First message, creation time: %v\n", messages[0].CreationTime)
-
-	messageJSON, err := json.Marshal(messages[0])
-	check(err)
-
-	fmt.Printf("First message JSON: %s\n", string(messageJSON))
-	// startServing()
+	startServingMessages(messages)
 }
 
-func startServing() {
+func startServingMessages(msg interface{}) {
 	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context){
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
+	r.GET("/messages", func(c *gin.Context){
+		c.JSON(200, msg)
 	})
 	r.Run() // listen and serve on 0.0.0.0:8080 ("localhost:8080")
 }
