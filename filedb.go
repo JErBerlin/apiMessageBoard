@@ -85,7 +85,7 @@ func writeMessageToFile(msg Message, pathToFile string) error {
 	return nil
 }
 
-func readMessageFromFileById(id [16]byte, index *DBIndex, pathToFile string) Message{
+func readMessageFromFileById(id [16]byte, index *DBPosIndex, pathToFile string) Message{
 	f,err := os.Open(pathToFile)
 	check(err)
 	defer f.Close()

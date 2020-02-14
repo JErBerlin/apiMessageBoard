@@ -1,31 +1,34 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"math/rand"
-	"sort"
-	"time"
 )
 
 const (
 	PathToMessagesFile = "./messages.csv"
 	timeFormat = "2006-01-02T15:04:05-07:00"
-	testLen = 3000000
-	testWriteLen = 300000
+	testLen = 150000
+	testWriteLen = 150000
 )
 
 func main() {
 	// do position and date indexing, as preparation for preloading of messages
 	log.Println("Indexing at start..")
-	mapIdPos := fillPositionIndex(PathToMessagesFile)
+	mapIdPos, err := fillPositionIndex(PathToMessagesFile)
 	_ = mapIdPos
-	mapTimeId, timeArr := fillChronIndArr(PathToMessagesFile)
-	_ = mapTimeId
-	_ = timeArr
+	if err != nil {
+		log.Fatal("impossible to make indexing of messages file,  ", err)
+	}
+	dbChronFinder, err := fillChronIndArr(PathToMessagesFile)
+	if err != nil {
+		log.Fatal("impossible to make indexing of messages file,  ", err)
+	}
+	_ = dbChronFinder
 
+	/*
 	// write messages
-	oneMessage := readMessageFromFileById(idToHex16byte("080B78DA-262D-EA54-391F-71FE92109F09"), mapIdPos, PathToMessagesFile)
+	oneMessage := readMessageFromFileById(idToHex16byte("080B78DA-262D-EA54-391F-71FE92109F09"),
+		mapIdPos, PathToMessagesFile)
 	timeNow := time.Now()
 	randInt64 := int64(timeNow.Nanosecond())
 	newSource := rand.NewSource(randInt64)
@@ -41,6 +44,7 @@ func main() {
 		err := writeMessageToFile(oneMessage, PathToMessagesFile)
 		check(err)
 	}
+	*/
 
 	/*
 	// read all messages
@@ -48,13 +52,16 @@ func main() {
 	_ = messages
 	*/
 
+	/*
 	// do indexing again
 	log.Println("Re-indexing after write operation")
 	mapIdPos = fillPositionIndex(PathToMessagesFile)
 	_ = mapIdPos
 	mapTimeId, timeArr = fillChronIndArr(PathToMessagesFile)
 	_ = mapTimeId
+	*/
 
+	/*
 	// sort the times anti-chronologically
 	sort.Slice(*timeArr, func(i, j int) bool{ return (*timeArr)[i] > (*timeArr)[j]})
 
@@ -67,13 +74,13 @@ func main() {
 		fmt.Printf("%4d: \t%v -- %s\n", i+1, oneMessage.CreationTime.Format("02/01/2006- 15:04:05"), oneMessage.Id)
 		// fmt.Println(t, "--",idHex16toStr((*mapTimeId)[oneMessage.CreationTime.UnixNano()]))
 	}
+	*/
 
-	// startServingMessages(messages)
-
+	startServing()
 }
 
-func check(e error) {
-	if e != nil {
-		log.Fatal(e)
+func check(err error) {
+	if err!= nil {
+		log.Println(err)
 	}
 }
