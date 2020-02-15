@@ -52,6 +52,7 @@ func editMessage(c *gin.Context) {
 	body := c.Request.Body
 	value, err := ioutil.ReadAll(body)
 	if err!= nil {
+		log.Println("body of the request could not be read, ", err)
 		c.JSON(http.StatusUnprocessableEntity , gin.H{"message": "the post request is invalid"})
 		return
 	}
@@ -59,8 +60,10 @@ func editMessage(c *gin.Context) {
 	json.Unmarshal(value, &newMessage)
 	idStr := newMessage.Id
 	if idStr == "" {
+		log.Println("unmarshalling of the json message to be edited failed, ", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "the id of the message to be edited doesn't exist or is bad formatted"})
+		return
 	}
 
 	// refresh indexation before search of editing message
@@ -74,8 +77,10 @@ func editMessage(c *gin.Context) {
 
 	id := idToHex16byte(idStr)
 	if _, ok := (*mapIdPos)[id]; !ok {
+		log.Println("the id of the message to be edited cannot be found in the index")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "the id of the message to be edited could not be found"})
+		return
 	}
 	oldMessage := readMessageFromFileById(id, mapIdPos, pathToFile)
 	// copy relevant fields (name, from old message to new
@@ -85,6 +90,7 @@ func editMessage(c *gin.Context) {
 
 	err = replaceMessageInFileById(newMessage, id, mapIdPos, PathToMessagesFile)
 	if err!= nil {
+		log.Println("replace operation of the in-file message failed ")
 		c.JSON(http.StatusInternalServerError , gin.H{"message": "the post requested could not be made"})
 		return
 	}
