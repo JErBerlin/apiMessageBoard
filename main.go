@@ -15,10 +15,10 @@ func main() {
 	// do position and date indexing, as preparation for preloading of messages
 	log.Println("Indexing at start..")
 	mapIdPos, err := fillPositionIndex(PathToMessagesFile)
-	_ = mapIdPos
 	if err != nil {
 		log.Fatal("impossible to make indexing of messages file,  ", err)
 	}
+	_ = mapIdPos
 	dbChronFinder, err := fillChronIndArr(PathToMessagesFile)
 	if err != nil {
 		log.Fatal("impossible to make indexing of messages file,  ", err)

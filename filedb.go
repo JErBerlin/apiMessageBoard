@@ -29,7 +29,8 @@ func validHeaderRow(row []string) (bool, error) {
 	return true, nil
 }
 
-func readMessagesFromFile(pathToFile string) []Message {
+// TODO: do we still need this? all messages are retrieved now individually after sorting by creationTime
+func readMessagesFromFile(pathToFile string) *[]Message {
 	messages := make([]Message, 0)
 
 	// Open the file
@@ -68,7 +69,7 @@ func readMessagesFromFile(pathToFile string) []Message {
 		}
 		messages = append(messages, newMessage)
 	}
-	return messages
+	return &messages
 }
 
 func writeMessageToFile(msg Message, pathToFile string) error {
@@ -78,6 +79,31 @@ func writeMessageToFile(msg Message, pathToFile string) error {
 		return err
 	}
 	defer f.Close()
+
+	if _, err := f.WriteString("\n"+fmt.Sprint(msg)); err != nil {
+		return err
+	}
+	return nil
+}
+
+// replaceMessageInFileById leaves the old message unchanged and writes another one with the same id and the same
+// fields, but with a new text, at the end of the file
+// this way of overwriting messages by appending works since the index system only remembers the last record (line) of
+// a group of records with identical ids
+// TODO: think of a possible garbage collector or compactifier to get rid of repeated ids resulting from edited messages
+func replaceMessageInFileById(msg Message, id [16]byte, mapIdPos *DBPosIndex, pathToFile string) error {
+	f, err := os.OpenFile(pathToFile,
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	pos, ok := (*mapIdPos)[id]
+	log.Println("Should delete line starting at pos:", pos)
+	if !ok {
+		return errors.New("the message id doesn't exist in the index map")
+	}
 
 	if _, err := f.WriteString("\n"+fmt.Sprint(msg)); err != nil {
 		return err
