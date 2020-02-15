@@ -91,28 +91,6 @@ func editMessage(c *gin.Context) {
 	c.JSON(http.StatusOK , gin.H{"message": "message was edited successfully"})
 }
 
-//TODO: do we need query method apart from view message by path?
-func messageQuery (c *gin.Context) {
-	pathToFile := PathToMessagesFile
-	mapIdPos, err := fillPositionIndex(pathToFile)
-	if err != nil {
-		log.Println("indexing of messages failed during request process, ", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "the ressource requested cannot be served"})
-		return
-	}
-
-	idStr := c.Query("id")
-	if idStr != "" {
-		id := idToHex16byte(idStr)
-		if _, ok := (*mapIdPos)[id]; ok {
-			oneMessage := readMessageFromFileById(id, mapIdPos, pathToFile)
-			c.JSON(http.StatusOK, oneMessage)
-			return
-		}
-	}
-	c.JSON(http.StatusBadRequest, gin.H{"message": "the id of the message requested doesn't exist or is bad formatted"})
-}
-
 func viewOneMessageByPath (c *gin.Context) {
 	pathToFile := PathToMessagesFile
 	mapIdPos, err := fillPositionIndex(pathToFile)
@@ -121,11 +99,6 @@ func viewOneMessageByPath (c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "the ressource requested cannot be served"})
 		return
 	}
-	// debug START
-	for k,v := range *mapIdPos {
-		log.Println(idHex16toStr(k),":",v)
-	}
-	// debug END
 
 	idStr := c.Param("id")
 	if idStr != "" {
@@ -200,7 +173,6 @@ func appendUniques(a []int64, b []int64) *[]int64 {
 func startServing() {
 	r := gin.Default()
 	r.GET("/", getHomePage)
-	r.GET("/query", messageQuery)	// could have different functionality than view
 	r.GET("/view/:id", viewOneMessageByPath)
 	r.POST("/new", postMessage)
 	r.POST("/edit", editMessage)
