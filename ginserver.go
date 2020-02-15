@@ -147,7 +147,7 @@ func getAllMessages (c *gin.Context) {
 
 	messages := make([]Message,0, len(*dbChronFinder.TimeArr))
 	// TODO: Debuging -- const testLen
-	for i:=0; i< testLen && i < len(*dbChronFinder.TimeArr); i++ {
+	for i:=0; i < len(*dbChronFinder.TimeArr); i++ {
 		t := (*dbChronFinder.TimeArr)[i]
 		id := (*dbChronFinder.ChronIndex)[t]
 

@@ -38,7 +38,7 @@ func fillPositionIndex(pathToFile string) (*DBPosIndex, error) {
 	posBytes := int64(lenHeader)
 
 	eof := false
-	for i:=0; i < testLen && !eof; i++ {
+	for i:=0; !eof; i++ {
 		line, err = r.ReadString('\n')
 		if err != io.EOF {
 			if err != nil {
@@ -72,7 +72,7 @@ func fillChronIndArr(pathToFile string) (DBChronFinder, error) {
 	if err != nil {
 		return DBChronFinder{}, err
 	}
-	for i:=0; i<testLen; i++{
+	for {
 		record, err = r.Read()
 		if err == io.EOF {
 			break

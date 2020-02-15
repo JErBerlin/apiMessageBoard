@@ -7,8 +7,6 @@ import (
 const (
 	PathToMessagesFile = "./messages.csv"
 	timeFormat = "2006-01-02T15:04:05-07:00"
-	testLen = 150000
-	testWriteLen = 150000
 )
 
 func main() {
