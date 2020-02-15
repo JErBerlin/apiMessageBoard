@@ -16,8 +16,8 @@ type DBChronFinder struct {
 	TimeArr   	*DBTimeArr
 }
 
-type DBChronIndex map[int64][16]byte
-type DBTimeArr []int64
+type DBChronIndex = map[int64][16]byte // we need an alias instead of type definition (see appendUniques)
+type DBTimeArr = []int64
 
 
 func fillPositionIndex(pathToFile string) (*DBPosIndex, error) {
