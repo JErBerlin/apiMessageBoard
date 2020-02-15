@@ -13,11 +13,31 @@ import (
 
 //TODO: refactor1 some the decode, write and read functionality out the of the gin server file to separate purposes
 //TODO: refactor2 some of the repeated code in different handles that does the same
+
+// startServingMessages serves the whole list of messages, body response is in JSON format
+// (only suitable for small messages files)
+func startRouter() {
+	r := gin.Default()
+
+	// for the private API: see one messages, list all, edit
+	authorized := r.Group("/", gin.BasicAuth(gin.Accounts{
+		"admin": "back-challenge",
+	}))
+
+	r.GET("/", getHomePage)
+	r.POST("/new", postMessage)
+	authorized.GET("/view/:id", viewOneMessageByPath)
+	authorized.POST("/edit", editMessage)
+	authorized.GET("/messages", getAllMessages)  // not functional yet, should be streaming for big files
+
+	r.Run() // listen and serve on 0.0.0.0:8080 ("localhost:8080")
+}
+
 func getHomePage(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Welcome to the back message board. You can authenticate at /admin, " +
+	c.JSON(http.StatusOK, gin.H{"message": "Welcome to the back message board. You can POST a new entry at /new," +
 		"GET one message by id at /view/:id, " +
-		"POST a new entry at /new, edit (POST) a message at /edit or also " +
-		"GET all messages at /messages."})
+		"edit (POST) a message at /edit or also " +
+		"GET all messages at /messages. The last three require authorization."})
 }
 
 func postMessage(c *gin.Context) {
@@ -174,14 +194,4 @@ func appendUniques(a []int64, b []int64) *[]int64 {
 	return &res
 }
 
-// startServingMessages serves the whole list of messages, body response is in JSON format
-// (only suitable for small messages files)
-func startServing() {
-	r := gin.Default()
-	r.GET("/", getHomePage)
-	r.GET("/view/:id", viewOneMessageByPath)
-	r.POST("/new", postMessage)
-	r.POST("/edit", editMessage)
-	r.GET("/messages", getAllMessages)  // not functional yet, should be streaming for big files
-	r.Run() // listen and serve on 0.0.0.0:8080 ("localhost:8080")
-}
+

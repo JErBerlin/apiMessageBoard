@@ -11,7 +11,7 @@ const (
 
 func main() {
 
-	startServing()
+	startRouter()
 
 }
 
