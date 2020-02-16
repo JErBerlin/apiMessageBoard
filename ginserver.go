@@ -164,17 +164,13 @@ func getAllMessages (c *gin.Context) {
 	sort.Slice(*(dbChronFinder.TimeArr), func(i, j int) bool{ 
 		return (*dbChronFinder.TimeArr)[i] > (*dbChronFinder.TimeArr)[j] })
 
-
+	// TODO: messages array may not fit in memory
 	messages := make([]Message,0, len(*dbChronFinder.TimeArr))
-	// TODO: Debuging -- const testLen
 	for i:=0; i < len(*dbChronFinder.TimeArr); i++ {
 		t := (*dbChronFinder.TimeArr)[i]
 		id := (*dbChronFinder.ChronIndex)[t]
 
 		oneMessage := readMessageFromFileById(id, mapIdPos, pathToFile)
-		// DEBUG start
-		log.Printf("%4d: \t%v -- %s\n", i+1, oneMessage.CreationTime.Format("02/01/2006- 15:04:05"), oneMessage.Id)
-		// DEBUG end
 		messages = append(messages,oneMessage)
 	}
 	c.JSON(http.StatusOK, messages)
