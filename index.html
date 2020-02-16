@@ -1,0 +1,48 @@
+<html>
+<head>
+    <title>Welcome to the message board</title>
+</head>
+
+<style>
+    #board {
+        text-align: left;
+        background: #f9f9f9;
+        width: 95%;
+        min-height: 300px;
+        padding: 20px;
+    }
+    #input {
+        width: 95%;
+    }
+</style>
+
+<body>
+<center>
+    <h3>Message board</h3>
+    <p id="board"></p>
+    <input placeholder="type the id of the message you would like to see (type 'all' to get the whole list):"
+           id="input" type="text">
+</center>
+
+<script>
+    var url = "ws://" + window.location.host + "/ws";
+    var ws = new WebSocket(url);
+
+    var board = document.getElementById("board");
+    var input = document.getElementById("input");
+
+    ws.onmessage = function (msg) {
+        var line = msg.data + "\n";
+        board.innerText += line;
+    };
+
+    input.onkeydown = function (e) {
+        if (e.keyCode === 13 && input.value !== "") {
+            ws.send("> " + input.value);
+            input.value = "";
+        }
+    };
+
+</script>
+</body>
+</html>

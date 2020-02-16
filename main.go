@@ -12,7 +12,6 @@ const (
 func main() {
 
 	startRouter()
-
 }
 
 // TODO: implement specific error handling in functions, decide if some fatal err case

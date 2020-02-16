@@ -2,42 +2,117 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"gopkg.in/olahol/melody.v1"
 	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 )
 
-//TODO: refactor1 some the decode, write and read functionality out the of the gin server file to separate purposes
-//TODO: refactor2 some of the repeated code in different handles that does the same
+const port = ":8080"
 
-// startServingMessages serves the whole list of messages, body response is in JSON format
-// (only suitable for small messages files)
+// TODO: refactor1 some the decode, write and read functionality out the of the gin server file to separate purposes
+// TODO: refactor2 some of the repeated code in different handles that does the same
+// TODO: in startRouter: separate functionality not related to routing
+
 func startRouter() {
+	// default gin router (logger and recovery functions)
 	r := gin.Default()
+
+	// new instance for websocket communication (just for admin)
+	m := melody.New()
+	m.Upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 
 	// for the private API: see one messages, list all, edit
 	authorized := r.Group("/", gin.BasicAuth(gin.Accounts{
 		"admin": "back-challenge",
 	}))
 
-	r.GET("/", getHomePage)
+	// public API
 	r.POST("/new", postMessage)
+
+	// private API
 	authorized.GET("/view/:id", viewOneMessageByPath)
 	authorized.POST("/edit", editMessage)
-	authorized.GET("/messages", getAllMessages)  // not functional yet, should be streaming for big files
+	//authorized.GET("/messages", getAllMessages)  // not functional yet, not suited for big csv file
 
-	r.Run() // listen and serve on 0.0.0.0:8080 ("localhost:8080")
-}
+	// websocket: access via web application
+	authorized.GET("/", func(c *gin.Context) {
+		http.ServeFile(c.Writer, c.Request, "index.html")
+	})
+	authorized.GET("/ws", func(c *gin.Context) {
+		m.HandleRequest(c.Writer, c.Request)
+	})
+	m.HandleMessage(func(s *melody.Session, msg []byte) {
+		m.Broadcast(msg)
+		if strings.ToLower(string(msg)) == "> all" {
+			m.Broadcast([]byte("-- retrieving all messages in streaming... --\n"))
 
-func getHomePage(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Welcome to the back message board. You can POST a new entry at /new," +
-		"GET one message by id at /view/:id, " +
-		"edit (POST) a message at /edit or also " +
-		"GET all messages at /messages. The last three require authorization."})
+			pathToFile := PathToMessagesFile
+
+			// do indexing again
+			mapIdPos, err := fillPositionIndex(pathToFile)
+			if err != nil {
+				log.Println("indexing of messages failed during websocket communication, ", err)
+				m.Broadcast([]byte("the ressource requested cannot be served\n"))
+				return
+			}
+			dbChronFinder, err := fillChronIndArr(pathToFile)
+			if err != nil {
+				log.Println("indexing of messages failed during websocket communication ", err)
+				m.Broadcast([]byte("the ressource requested cannot be served\n"))
+				return
+			}
+
+			// remove repeated instances in TimeArr
+			dbChronFinder.TimeArr = appendUniques(*(dbChronFinder.TimeArr), *(dbChronFinder.TimeArr))
+
+			// sort the times anti-chronologically
+			sort.Slice(*(dbChronFinder.TimeArr), func(i, j int) bool{
+				return (*dbChronFinder.TimeArr)[i] > (*dbChronFinder.TimeArr)[j] })
+
+			for i:=0; i < len(*dbChronFinder.TimeArr); i++ {
+				t := (*dbChronFinder.TimeArr)[i]
+				id := (*dbChronFinder.ChronIndex)[t]
+
+				oneMessage := readMessageFromFileById(id, mapIdPos, pathToFile)
+				data, err := json.Marshal(oneMessage)
+				if err != nil {
+					fmt.Println("failed json encoding in websocket communication")
+					m.Broadcast([]byte("the ressource requested cannot be served\n"))
+					return
+				}
+				m.Broadcast([]byte(string(data)+"\n"))
+			}
+			m.Broadcast([]byte("-- end of the data streaming --\n"))
+		} else {
+			mapIdPos, err := fillPositionIndex(PathToMessagesFile)
+			if err != nil {
+				fmt.Println("failed indexing in websocket communication")
+				m.Broadcast([]byte("-- could not serve the required resource --\n"))
+				return
+			}
+			id := idToHex16byte(string(msg[2:]))
+			if _, ok := (*mapIdPos)[id]; ok {
+				oneMessage := readMessageFromFileById(id, mapIdPos, PathToMessagesFile)
+				data, err := json.Marshal(oneMessage)
+				if err != nil {
+					fmt.Println("failed json encoding in websocket communication")
+					return
+				}
+				m.Broadcast([]byte(string(data)+"\n"))
+			} else {
+				m.Broadcast([]byte("-- input command not recognized, or the id doesn't exist --\n"))
+			}
+		}
+	})
+
+	r.Run(port) // listen and serve on 0.0.0.0:port ("localhost:port")
 }
 
 func postMessage(c *gin.Context) {
@@ -136,44 +211,6 @@ func viewOneMessageByPath (c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusBadRequest, gin.H{"message": "the id of the message requested doesn't exist or is bad formatted"})
-}
-
-// getAllMessages retrieve all messages from file, sorts them anti-chronologically and send them back 
-// (as a unique response from a RESTful API?)
-func getAllMessages (c *gin.Context) {
-	pathToFile := PathToMessagesFile
-
-	// do indexing again
-	mapIdPos, err := fillPositionIndex(pathToFile)
-	if err != nil {
-		log.Println("indexing of messages failed during request process, ", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "the ressource requested cannot be served"})
-		return
-	}
-	dbChronFinder, err := fillChronIndArr(pathToFile)
-	if err != nil {
-		log.Println("indexing of messages failed during request process, ", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "the ressource requested cannot be served"})
-		return
-	}
-
-	// remove repeated instances in TimeArr
-	dbChronFinder.TimeArr = appendUniques(*(dbChronFinder.TimeArr), *(dbChronFinder.TimeArr))
-
-	// sort the times anti-chronologically
-	sort.Slice(*(dbChronFinder.TimeArr), func(i, j int) bool{ 
-		return (*dbChronFinder.TimeArr)[i] > (*dbChronFinder.TimeArr)[j] })
-
-	// TODO: messages array may not fit in memory
-	messages := make([]Message,0, len(*dbChronFinder.TimeArr))
-	for i:=0; i < len(*dbChronFinder.TimeArr); i++ {
-		t := (*dbChronFinder.TimeArr)[i]
-		id := (*dbChronFinder.ChronIndex)[t]
-
-		oneMessage := readMessageFromFileById(id, mapIdPos, pathToFile)
-		messages = append(messages,oneMessage)
-	}
-	c.JSON(http.StatusOK, messages)
 }
 
 func appendUniques(a []int64, b []int64) *[]int64 {
