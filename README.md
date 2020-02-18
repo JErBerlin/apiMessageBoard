@@ -43,9 +43,9 @@ New messages are appended at the end of the file, provided with an automatically
 
 Editing of a message is accomplished by duplicating the message (this means duplicating its id and cloning all the other
 fields excepting the text), and its text field being updated with a new string (this is in fact the only editable field). 
-The updated record is the appended at the end of the file and the old record is kept in its original position of the 
-file. Even when it could be a concern to keep the old records, and in doing so to have records with duplicated id, the 
-indexes take in account by design only the last occurrence of a given id and the data can keep its coherence. 
+The updated record is then appended at the end of the file and the old record is kept in its original position. It 
+certainly could be a concern to keep the old records -and in doing so have records with duplicated id. However, the 
+indexes take in account only the last occurrence of a given id and the data can keep its coherence. 
 
 The decision of duplicating ids and keeping old records was made because the way in which read/write file operations work
 in os systems, but also to ensure data coherence and make the system thread safe. As a result, the csv file can grow in 
@@ -135,7 +135,7 @@ To build a new image you can type from the directory where the dockerfile is:
 
 To run the docker container:
 
-`docker run -it back-message-board`
+`docker run -it -p 8080:8080 back-message-board`
 
 ### Next steps
 
