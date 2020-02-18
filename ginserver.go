@@ -73,10 +73,11 @@ func startRouter() {
 			dbChronFinder.TimeArr = appendUniques(*(dbChronFinder.TimeArr), *(dbChronFinder.TimeArr))
 
 			// sort the times anti-chronologically
-			sort.Slice(*(dbChronFinder.TimeArr), func(i, j int) bool{
-				return (*dbChronFinder.TimeArr)[i] > (*dbChronFinder.TimeArr)[j] })
+			sort.Slice(*(dbChronFinder.TimeArr), func(i, j int) bool {
+				return (*dbChronFinder.TimeArr)[i] > (*dbChronFinder.TimeArr)[j]
+			})
 
-			for i:=0; i < len(*dbChronFinder.TimeArr); i++ {
+			for i := 0; i < len(*dbChronFinder.TimeArr); i++ {
 				t := (*dbChronFinder.TimeArr)[i]
 				id := (*dbChronFinder.ChronIndex)[t]
 
@@ -87,7 +88,7 @@ func startRouter() {
 					m.Broadcast([]byte("the ressource requested cannot be served\n"))
 					return
 				}
-				m.Broadcast([]byte(string(data)+"\n"))
+				m.Broadcast([]byte(string(data) + "\n"))
 			}
 			m.Broadcast([]byte("-- end of the data streaming --\n"))
 		} else {
@@ -105,7 +106,7 @@ func startRouter() {
 					fmt.Println("failed json encoding in websocket communication")
 					return
 				}
-				m.Broadcast([]byte(string(data)+"\n"))
+				m.Broadcast([]byte(string(data) + "\n"))
 			} else {
 				m.Broadcast([]byte("-- input command not recognized, or the id doesn't exist --\n"))
 			}
@@ -118,8 +119,8 @@ func startRouter() {
 func postMessage(c *gin.Context) {
 	body := c.Request.Body
 	value, err := ioutil.ReadAll(body)
-	if err!= nil {
-		c.JSON(http.StatusUnprocessableEntity , gin.H{"message": "the post request is invalid"})
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "the post request is invalid"})
 		return
 	}
 	oneMessage := Message{}
@@ -133,11 +134,11 @@ func postMessage(c *gin.Context) {
 	oneMessage.CreationTime = newTime
 
 	err = writeMessageToFile(oneMessage, PathToMessagesFile)
-	if err!= nil {
-		c.JSON(http.StatusInternalServerError , gin.H{"message": "the post requested could not be made"})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "the post requested could not be made"})
 		return
 	}
-	c.JSON(http.StatusOK , gin.H{"message": "message was posted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "message was posted successfully"})
 }
 
 // editMessage is a handler for editing messages by admin using id
@@ -146,9 +147,9 @@ func postMessage(c *gin.Context) {
 func editMessage(c *gin.Context) {
 	body := c.Request.Body
 	value, err := ioutil.ReadAll(body)
-	if err!= nil {
+	if err != nil {
 		log.Println("body of the request could not be read, ", err)
-		c.JSON(http.StatusUnprocessableEntity , gin.H{"message": "the post request is invalid"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "the post request is invalid"})
 		return
 	}
 	newMessage := Message{}
@@ -184,15 +185,15 @@ func editMessage(c *gin.Context) {
 	newMessage.CreationTime = oldMessage.CreationTime
 
 	err = replaceMessageInFileById(newMessage, id, mapIdPos, PathToMessagesFile)
-	if err!= nil {
+	if err != nil {
 		log.Println("replace operation of the in-file message failed ")
-		c.JSON(http.StatusInternalServerError , gin.H{"message": "the post requested could not be made"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "the post requested could not be made"})
 		return
 	}
-	c.JSON(http.StatusOK , gin.H{"message": "message was edited successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "message was edited successfully"})
 }
 
-func viewOneMessageByPath (c *gin.Context) {
+func viewOneMessageByPath(c *gin.Context) {
 	pathToFile := PathToMessagesFile
 	mapIdPos, err := fillPositionIndex(pathToFile)
 	if err != nil {
@@ -216,15 +217,13 @@ func viewOneMessageByPath (c *gin.Context) {
 func appendUniques(a []int64, b []int64) *[]int64 {
 	check := make(map[int64]int)
 	d := append(a, b...)
-	res := make([]int64,0)
+	res := make([]int64, 0)
 	for _, val := range d {
 		check[val] = 1
 	}
 	for num, _ := range check {
-		res = append(res,num)
+		res = append(res, num)
 	}
 
 	return &res
 }
-
-

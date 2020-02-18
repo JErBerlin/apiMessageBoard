@@ -37,7 +37,7 @@ func writeMessageToFile(msg Message, pathToFile string) error {
 	}
 	defer f.Close()
 
-	if _, err := f.WriteString("\n"+fmt.Sprint(msg)); err != nil {
+	if _, err := f.WriteString("\n" + fmt.Sprint(msg)); err != nil {
 		return err
 	}
 	return nil
@@ -62,14 +62,14 @@ func replaceMessageInFileById(msg Message, id [16]byte, mapIdPos *DBPosIndex, pa
 		return errors.New("the message id doesn't exist in the index map")
 	}
 
-	if _, err := f.WriteString("\n"+fmt.Sprint(msg)); err != nil {
+	if _, err := f.WriteString("\n" + fmt.Sprint(msg)); err != nil {
 		return err
 	}
 	return nil
 }
 
-func readMessageFromFileById(id [16]byte, index *DBPosIndex, pathToFile string) Message{
-	f,err := os.Open(pathToFile)
+func readMessageFromFileById(id [16]byte, index *DBPosIndex, pathToFile string) Message {
+	f, err := os.Open(pathToFile)
 	check(err)
 	defer f.Close()
 
@@ -78,7 +78,7 @@ func readMessageFromFileById(id [16]byte, index *DBPosIndex, pathToFile string) 
 		log.Println("the message id doesn't exist in the index map")
 		return Message{}
 	}
-	offset:= pos // int64(lenHeader)+pos
+	offset := pos // int64(lenHeader)+pos
 	var whence int = 0
 	_, err = f.Seek(offset, whence)
 	check(err)
@@ -95,12 +95,12 @@ func readMessageFromFileById(id [16]byte, index *DBPosIndex, pathToFile string) 
 	t, err := time.Parse(form, record[4])
 	check(err)
 
-	msg := Message {
-		Id: 			record[0],
-		Name: 			record[1],
-		Email:			record[2],
-		Text: 			record[3],
-		CreationTime: 	t,
+	msg := Message{
+		Id:           record[0],
+		Name:         record[1],
+		Email:        record[2],
+		Text:         record[3],
+		CreationTime: t,
 	}
 	return msg
 }

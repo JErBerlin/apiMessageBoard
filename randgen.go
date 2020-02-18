@@ -14,10 +14,10 @@ func randomIdStr16(randNow *rand.Rand) (string, error) {
 	}
 	hexStrB := []byte(hex.EncodeToString(bytes))
 	str := fmt.Sprint(
-		strings.ToUpper(string(hexStrB[0:8])),"-",
-		strings.ToUpper(string(hexStrB[8:12])),"-",
-		strings.ToUpper(string(hexStrB[12:16])),"-",
-		strings.ToUpper(string(hexStrB[16:20])),"-",
+		strings.ToUpper(string(hexStrB[0:8])), "-",
+		strings.ToUpper(string(hexStrB[8:12])), "-",
+		strings.ToUpper(string(hexStrB[12:16])), "-",
+		strings.ToUpper(string(hexStrB[16:20])), "-",
 		strings.ToUpper(string(hexStrB[20:32])))
 	return str, nil
 }

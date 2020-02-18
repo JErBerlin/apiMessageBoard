@@ -12,13 +12,12 @@ import (
 type DBPosIndex map[[16]byte]int64
 
 type DBChronFinder struct {
-	ChronIndex 	*DBChronIndex
-	TimeArr   	*DBTimeArr
+	ChronIndex *DBChronIndex
+	TimeArr    *DBTimeArr
 }
 
 type DBChronIndex = map[int64][16]byte // we need an alias instead of type definition (see appendUniques)
 type DBTimeArr = []int64
-
 
 func fillPositionIndex(pathToFile string) (*DBPosIndex, error) {
 	mapIdPos := make(DBPosIndex)
@@ -38,7 +37,7 @@ func fillPositionIndex(pathToFile string) (*DBPosIndex, error) {
 	posBytes := int64(lenHeader)
 
 	eof := false
-	for i:=0; !eof; i++ {
+	for i := 0; !eof; i++ {
 		line, err = r.ReadString('\n')
 		if err != io.EOF {
 			if err != nil {
@@ -57,7 +56,7 @@ func fillPositionIndex(pathToFile string) (*DBPosIndex, error) {
 // fillChronIndArr fills up the creation time array and the chronological index
 func fillChronIndArr(pathToFile string) (DBChronFinder, error) {
 	mapTimeId := make(DBChronIndex)
-	timeArr := make(DBTimeArr,0)
+	timeArr := make(DBTimeArr, 0)
 
 	csvFile, err := os.Open(pathToFile)
 	if err != nil {
@@ -89,4 +88,3 @@ func fillChronIndArr(pathToFile string) (DBChronFinder, error) {
 	}
 	return DBChronFinder{&mapTimeId, &timeArr}, nil
 }
-
