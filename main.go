@@ -7,5 +7,5 @@ const (
 
 func main() {
 
-	startRouter()
+	StartRouter()
 }

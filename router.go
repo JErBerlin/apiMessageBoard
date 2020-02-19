@@ -18,28 +18,29 @@ const port = ":8080"
 // TODO: refactor1 some the decode, write and read functionality out the of the gin server file to separate purposes
 // TODO: in startRouter: separate functionality not related to routing
 
-func startRouter() {
+func StartRouter() {
 	// default gin router (logger and recovery functions)
 	r := gin.Default()
-
-	// new instance for websocket communication (just for admin)
-	m := melody.New()
-	m.Upgrader.CheckOrigin = func(r *http.Request) bool { return true }
-
-	// for the private API: see one messages, list all, edit
 	authorized := r.Group("/", gin.BasicAuth(gin.Accounts{
 		"admin": "back-challenge",
 	}))
 
 	// public API
+	// new message
 	r.POST("/new", postMessage)
 
 	// private API
+	// list one message, edit
 	authorized.GET("/view/:id", viewOneMessageByPath)
 	authorized.POST("/edit", editMessage)
-	//authorized.GET("/messages", getAllMessages)  // not functional yet, not suited for big csv file
 
-	// websocket: access via web application
+	// websocket API
+	// list all messages, list one message
+
+	// new instance for websocket communication (just for admin)
+	m := melody.New()
+	m.Upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+
 	authorized.GET("/", func(c *gin.Context) {
 		http.ServeFile(c.Writer, c.Request, "index.html")
 	})
