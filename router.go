@@ -53,13 +53,13 @@ func StartRouter() {
 			m.Broadcast([]byte("-- retrieving all messages in streaming... --\n"))
 
 			// do indexing again
-			mapIdPos, err := fillPositionIndex(PathToMessagesFile)
+			mapIdPos, err := FillPositionIndex(PathToMessagesFile)
 			if err != nil {
 				log.Println("indexing of messages failed during websocket communication, ", err)
 				m.Broadcast([]byte("the ressource requested cannot be served\n"))
 				return
 			}
-			dbChronFinder, err := fillChronIndArr(PathToMessagesFile)
+			dbChronFinder, err := FillChronIndArr(PathToMessagesFile)
 			if err != nil {
 				log.Println("indexing of messages failed during websocket communication ", err)
 				m.Broadcast([]byte("the ressource requested cannot be served\n"))
@@ -98,7 +98,7 @@ func StartRouter() {
 			}
 			m.Broadcast([]byte("-- end of the data streaming --\n"))
 		} else {
-			mapIdPos, err := fillPositionIndex(PathToMessagesFile)
+			mapIdPos, err := FillPositionIndex(PathToMessagesFile)
 			if err != nil {
 				fmt.Println("failed indexing in websocket communication")
 				m.Broadcast([]byte("-- could not serve the required resource --\n"))
@@ -176,7 +176,7 @@ func editMessage(c *gin.Context) {
 		return
 	}
 
-	mapIdPos, err := fillPositionIndex(PathToMessagesFile)
+	mapIdPos, err := FillPositionIndex(PathToMessagesFile)
 	if err != nil {
 		log.Println("indexing of messages failed during request process, ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "the edition of the message could not be made"})
@@ -192,7 +192,7 @@ func editMessage(c *gin.Context) {
 }
 
 func viewOneMessageByPath(c *gin.Context) {
-	mapIdPos, err := fillPositionIndex(PathToMessagesFile)
+	mapIdPos, err := FillPositionIndex(PathToMessagesFile)
 	if err != nil {
 		log.Println("indexing of messages failed during request process, ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "the ressource requested cannot be served"})

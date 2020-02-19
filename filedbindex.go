@@ -10,17 +10,24 @@ import (
 	"time"
 )
 
+// a position index is a map from 16 digit hex id to a int64 position (bytes positions from beginning of file)
 type DBPosIndex map[[16]byte]int64
 
+// a chronological finder contains a chronological index and a time array
 type DBChronFinder struct {
 	ChronIndex *DBChronIndex
 	TimeArr    *DBTimeArr
 }
 
+// a chronological index is a map from int64 time (nanoseconds) to 16 digit hex id
 type DBChronIndex = map[int64][16]byte // we need an alias instead of type definition (see appendUniques)
+
+// a time array contains int64 time (nanoseconds)
 type DBTimeArr = []int64
 
-func fillPositionIndex(pathToFile string) (*DBPosIndex, error) {
+
+// FillPositionIndex fills a position index for the db, as map from 16 hex id to int64 position
+func FillPositionIndex(pathToFile string) (*DBPosIndex, error) {
 	mapIdPos := make(DBPosIndex)
 
 	f, err := os.Open(pathToFile)
@@ -55,8 +62,9 @@ func fillPositionIndex(pathToFile string) (*DBPosIndex, error) {
 	return &mapIdPos, nil
 }
 
-// fillChronIndArr fills up the creation time array and the chronological index
-func fillChronIndArr(pathToFile string) (DBChronFinder, error) {
+// FillChronIndArr fills up the creation time array and the chronological index
+// the chronological index is a map from int64 time (nanoseconds) to 16 digit hex id
+func FillChronIndArr(pathToFile string) (DBChronFinder, error) {
 	mapTimeId := make(DBChronIndex)
 	timeArr := make(DBTimeArr, 0)
 
