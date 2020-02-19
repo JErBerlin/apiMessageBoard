@@ -1,18 +1,20 @@
 // filedb.go provides writing and reading functions for records of type Message in a flat-file database
-package main
+package db
 
 import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"github.com/JErBerlin/back_message_board/message"
 	"io"
 	"os"
 )
 
+// Record represents a line in a csv file
 type Record []string
 
 // WriteMessageToFile write a message to the end of the file at pathToFile
-func WriteMessageToFile(msg Message, pathToFile string) error {
+func WriteMessageToFile(msg message.Message, pathToFile string) error {
 	f, err := os.OpenFile(pathToFile,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -57,7 +59,7 @@ func ReadMessageFromFileById(id [16]byte, mapIdPos *DBPosIndex, pathToFile strin
 
 // ReplaceMessageInFileById leaves the old message identified by id unchanged, and writes another one with the same id
 // and cloned fields, but with a new text, at the end of the file
-func ReplaceMessageInFileById(msg Message, id [16]byte, mapIdPos *DBPosIndex, pathToFile string) error {
+func ReplaceMessageInFileById(msg message.Message, id [16]byte, mapIdPos *DBPosIndex, pathToFile string) error {
 	f, err := os.OpenFile(pathToFile,
 		os.O_APPEND, 0644)
 	if err != nil {
@@ -70,7 +72,7 @@ func ReplaceMessageInFileById(msg Message, id [16]byte, mapIdPos *DBPosIndex, pa
 		return err
 	}
 
-	oldMessage, err := NewFromRecord(record)
+	oldMessage, err := message.NewFromRecord(record)
 	if err != nil {
 		return err
 	}

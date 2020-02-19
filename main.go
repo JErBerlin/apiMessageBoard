@@ -1,8 +1,8 @@
 package main
 
 const (
-	PathToMessagesFile = "./messages.csv"
-	timeFormat         = "2006-01-02T15:04:05-07:00"
+	pathToMessagesFile = "./messages.csv"
+
 )
 
 func main() {

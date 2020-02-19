@@ -1,5 +1,5 @@
 // message.go defines the basic the structure message and provides methods to stringify its fields
-package main
+package message
 
 import (
 	"encoding/json"
@@ -8,6 +8,10 @@ import (
 	"reflect"
 	"strings"
 	"time"
+)
+
+const (
+	TimeFormat = "2006-01-02T15:04:05-07:00"
 )
 
 type Message struct {
@@ -31,13 +35,13 @@ func (m Message) PrintFields() string {
 
 // String returns the values Message in a format suitable for a record in a csv file
 func (m Message) String() string {
-	timeStr := m.CreationTime.Format(timeFormat)
+	timeStr := m.CreationTime.Format(TimeFormat)
 	return fmt.Sprintf("%s,%s,%s,\"%s\",%s", m.Id, m.Name, m.Email, m.Text, timeStr)
 }
 
 // NewFromRecord returns a new Message with the information provided by a record from the csv file
 func NewFromRecord (record []string) (Message, error) {
-	t, err := time.Parse(timeFormat, record[4])
+	t, err := time.Parse(TimeFormat, record[4])
 	if err != nil {
 		return Message{}, err
 	}

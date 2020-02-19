@@ -4,6 +4,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/JErBerlin/back_message_board/db"
+	"github.com/JErBerlin/back_message_board/message"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/olahol/melody.v1"
 	"io/ioutil"
@@ -53,13 +55,13 @@ func StartRouter() {
 			m.Broadcast([]byte("-- retrieving all messages in streaming... --\n"))
 
 			// do indexing again
-			mapIdPos, err := FillPositionIndex(PathToMessagesFile)
+			mapIdPos, err := db.FillPositionIndex(pathToMessagesFile)
 			if err != nil {
 				log.Println("indexing of messages failed during websocket communication, ", err)
 				m.Broadcast([]byte("the ressource requested cannot be served\n"))
 				return
 			}
-			dbChronFinder, err := FillChronIndArr(PathToMessagesFile)
+			dbChronFinder, err := db.FillChronIndArr(pathToMessagesFile)
 			if err != nil {
 				log.Println("indexing of messages failed during websocket communication ", err)
 				m.Broadcast([]byte("the ressource requested cannot be served\n"))
@@ -78,12 +80,12 @@ func StartRouter() {
 				t := (*dbChronFinder.TimeArr)[i]
 				id := (*dbChronFinder.ChronIndex)[t]
 
-				record, err := ReadMessageFromFileById(id, mapIdPos, PathToMessagesFile)
+				record, err := db.ReadMessageFromFileById(id, mapIdPos, pathToMessagesFile)
 				if err != nil {
 					log.Println(err)
 					return
 				}
-				oneMessage, err := NewFromRecord(record)
+				oneMessage, err := message.NewFromRecord(record)
 				if err != nil {
 					log.Println(err)
 					return
@@ -98,20 +100,20 @@ func StartRouter() {
 			}
 			m.Broadcast([]byte("-- end of the data streaming --\n"))
 		} else {
-			mapIdPos, err := FillPositionIndex(PathToMessagesFile)
+			mapIdPos, err := db.FillPositionIndex(pathToMessagesFile)
 			if err != nil {
 				fmt.Println("failed indexing in websocket communication")
 				m.Broadcast([]byte("-- could not serve the required resource --\n"))
 				return
 			}
-			id, _ := IdToHex16byte(string(msg[2:]))
+			id, _ := message.IdToHex16byte(string(msg[2:]))
 			if _, ok := (*mapIdPos)[id]; ok {
-				record, err := ReadMessageFromFileById(id, mapIdPos, PathToMessagesFile)
+				record, err := db.ReadMessageFromFileById(id, mapIdPos, pathToMessagesFile)
 				if err != nil {
 					log.Println(err)
 					return
 				}
-				oneMessage, err := NewFromRecord(record)
+				oneMessage, err := message.NewFromRecord(record)
 				if err != nil {
 					log.Println(err)
 					return
@@ -139,14 +141,14 @@ func postMessage(c *gin.Context) {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "the post request is invalid"})
 		return
 	}
-	newMessage, err := NewFromJSON(msgJSON)
+	newMessage, err := message.NewFromJSON(msgJSON)
 	if err != nil {
 		log.Println("new message could not be generated from json message:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "the post requested could not be made"})
 		return
 	}
 
-	err = WriteMessageToFile(newMessage, PathToMessagesFile)
+	err = db.WriteMessageToFile(newMessage, pathToMessagesFile)
 	if err != nil {
 		log.Println("new message could not be written:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "the post requested could not be made"})
@@ -166,7 +168,7 @@ func editMessage(c *gin.Context) {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "the post request is invalid"})
 		return
 	}
-	newMessage := Message{}
+	newMessage := message.Message{}
 	json.Unmarshal(value, &newMessage)
 	idStr := newMessage.Id
 	if idStr == "" {
@@ -176,14 +178,14 @@ func editMessage(c *gin.Context) {
 		return
 	}
 
-	mapIdPos, err := FillPositionIndex(PathToMessagesFile)
+	mapIdPos, err := db.FillPositionIndex(pathToMessagesFile)
 	if err != nil {
 		log.Println("indexing of messages failed during request process, ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "the edition of the message could not be made"})
 		return
 	}
-	id, _ := IdToHex16byte(idStr)
-	err = ReplaceMessageInFileById(newMessage, id, mapIdPos, PathToMessagesFile)
+	id, _ := message.IdToHex16byte(idStr)
+	err = db.ReplaceMessageInFileById(newMessage, id, mapIdPos, pathToMessagesFile)
 	if err != nil {
 		log.Println("old message could not be replaced by new message: ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "the edition of the message could not be made"})
@@ -192,7 +194,7 @@ func editMessage(c *gin.Context) {
 }
 
 func viewOneMessageByPath(c *gin.Context) {
-	mapIdPos, err := FillPositionIndex(PathToMessagesFile)
+	mapIdPos, err := db.FillPositionIndex(pathToMessagesFile)
 	if err != nil {
 		log.Println("indexing of messages failed during request process, ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "the ressource requested cannot be served"})
@@ -205,15 +207,15 @@ func viewOneMessageByPath(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "the id of the message requested doesn't exist or is bad formatted"})
 	}
-	id, _ := IdToHex16byte(idStr)
-	record, err := ReadMessageFromFileById(id, mapIdPos, PathToMessagesFile)
+	id, _ := message.IdToHex16byte(idStr)
+	record, err := db.ReadMessageFromFileById(id, mapIdPos, pathToMessagesFile)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "the message requested could not be found"})
 		return
 	}
-	oneMessage, err := NewFromRecord(record)
+	oneMessage, err := message.NewFromRecord(record)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{

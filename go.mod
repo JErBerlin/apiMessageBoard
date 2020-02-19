@@ -1,4 +1,4 @@
-module challenges/back/back_message_board
+module github.com/JErBerlin/back_message_board
 
 go 1.12
 

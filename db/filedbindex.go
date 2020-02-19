@@ -1,9 +1,10 @@
 // filedbindex.go provides indexing objects and functions for a flat-file database with records of type Message.String()
-package main
+package db
 
 import (
 	"bufio"
 	"encoding/csv"
+	"github.com/JErBerlin/back_message_board/message"
 	"io"
 	"os"
 	"strings"
@@ -55,7 +56,7 @@ func FillPositionIndex(pathToFile string) (*DBPosIndex, error) {
 			eof = true
 		}
 		record := strings.Split(line, ",")
-		id,_ := IdToHex16byte(record[0])
+		id,_ := message.IdToHex16byte(record[0])
 		mapIdPos[id] = posBytes
 		posBytes += int64(len(line))
 	}
@@ -90,12 +91,12 @@ func FillChronIndArr(pathToFile string) (DBChronFinder, error) {
 			return DBChronFinder{}, err
 		}
 
-		form := timeFormat
+		form := message.TimeFormat
 		t, err := time.Parse(form, record[4])
 		if err != nil {
 			return DBChronFinder{}, err
 		}
-		mapTimeId[t.UnixNano()], _ = IdToHex16byte(record[0])
+		mapTimeId[t.UnixNano()], _ = message.IdToHex16byte(record[0])
 		timeArr = append(timeArr, t.UnixNano())
 	}
 	return DBChronFinder{&mapTimeId, &timeArr}, nil

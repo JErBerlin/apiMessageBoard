@@ -1,5 +1,5 @@
 // id.go provides helper functions for the field id of the type message
-package main
+package message
 
 import (
 	"encoding/hex"
