@@ -1,3 +1,4 @@
+// router.go does the routing of path to handlers and define the handler functions
 package main
 
 import (
@@ -7,17 +8,14 @@ import (
 	"gopkg.in/olahol/melody.v1"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"net/http"
 	"sort"
 	"strings"
-	"time"
 )
 
 const port = ":8080"
 
 // TODO: refactor1 some the decode, write and read functionality out the of the gin server file to separate purposes
-// TODO: refactor2 some of the repeated code in different handles that does the same
 // TODO: in startRouter: separate functionality not related to routing
 
 func startRouter() {
@@ -53,16 +51,14 @@ func startRouter() {
 		if strings.ToLower(string(msg)) == "> all" {
 			m.Broadcast([]byte("-- retrieving all messages in streaming... --\n"))
 
-			pathToFile := PathToMessagesFile
-
 			// do indexing again
-			mapIdPos, err := fillPositionIndex(pathToFile)
+			mapIdPos, err := fillPositionIndex(PathToMessagesFile)
 			if err != nil {
 				log.Println("indexing of messages failed during websocket communication, ", err)
 				m.Broadcast([]byte("the ressource requested cannot be served\n"))
 				return
 			}
-			dbChronFinder, err := fillChronIndArr(pathToFile)
+			dbChronFinder, err := fillChronIndArr(PathToMessagesFile)
 			if err != nil {
 				log.Println("indexing of messages failed during websocket communication ", err)
 				m.Broadcast([]byte("the ressource requested cannot be served\n"))
@@ -81,7 +77,16 @@ func startRouter() {
 				t := (*dbChronFinder.TimeArr)[i]
 				id := (*dbChronFinder.ChronIndex)[t]
 
-				oneMessage := readMessageFromFileById(id, mapIdPos, pathToFile)
+				record, err := ReadMessageFromFileById(id, mapIdPos, PathToMessagesFile)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+				oneMessage, err := NewFromRecord(record)
+				if err != nil {
+					log.Println(err)
+					return
+				}
 				data, err := json.Marshal(oneMessage)
 				if err != nil {
 					fmt.Println("failed json encoding in websocket communication")
@@ -98,9 +103,18 @@ func startRouter() {
 				m.Broadcast([]byte("-- could not serve the required resource --\n"))
 				return
 			}
-			id := idToHex16byte(string(msg[2:]))
+			id, _ := IdToHex16byte(string(msg[2:]))
 			if _, ok := (*mapIdPos)[id]; ok {
-				oneMessage := readMessageFromFileById(id, mapIdPos, PathToMessagesFile)
+				record, err := ReadMessageFromFileById(id, mapIdPos, PathToMessagesFile)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+				oneMessage, err := NewFromRecord(record)
+				if err != nil {
+					log.Println(err)
+					return
+				}
 				data, err := json.Marshal(oneMessage)
 				if err != nil {
 					fmt.Println("failed json encoding in websocket communication")
@@ -118,23 +132,22 @@ func startRouter() {
 
 func postMessage(c *gin.Context) {
 	body := c.Request.Body
-	value, err := ioutil.ReadAll(body)
+	msgJSON, err := ioutil.ReadAll(body)
 	if err != nil {
+		log.Println("body from post request could not be read:", err)
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "the post request is invalid"})
 		return
 	}
-	oneMessage := Message{}
-	json.Unmarshal(value, &oneMessage)
-
-	newTime := time.Now()
-	newSource := rand.NewSource(int64(newTime.Nanosecond()))
-	randNow := rand.New(newSource)
-	newIdStr, _ := randomIdStr16(randNow)
-	oneMessage.Id = newIdStr
-	oneMessage.CreationTime = newTime
-
-	err = writeMessageToFile(oneMessage, PathToMessagesFile)
+	newMessage, err := NewFromJSON(msgJSON)
 	if err != nil {
+		log.Println("new message could not be generated from json message:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "the post requested could not be made"})
+		return
+	}
+
+	err = WriteMessageToFile(newMessage, PathToMessagesFile)
+	if err != nil {
+		log.Println("new message could not be written:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "the post requested could not be made"})
 		return
 	}
@@ -158,44 +171,27 @@ func editMessage(c *gin.Context) {
 	if idStr == "" {
 		log.Println("unmarshalling of the json message to be edited failed, ", err)
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "the id of the message to be edited doesn't exist or is bad formatted"})
+			"message": "the id of the message to be edited is not set or is bad formatted"})
 		return
 	}
 
-	// refresh indexation before search of editing message
-	pathToFile := PathToMessagesFile
-	mapIdPos, err := fillPositionIndex(pathToFile)
+	mapIdPos, err := fillPositionIndex(PathToMessagesFile)
 	if err != nil {
-		log.Println("indexing of messages failed during edit request process, ", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "the resource requested cannot be edited"})
+		log.Println("indexing of messages failed during request process, ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "the edition of the message could not be made"})
 		return
 	}
-
-	id := idToHex16byte(idStr)
-	if _, ok := (*mapIdPos)[id]; !ok {
-		log.Println("the id of the message to be edited cannot be found in the index")
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "the id of the message to be edited could not be found"})
-		return
-	}
-	oldMessage := readMessageFromFileById(id, mapIdPos, pathToFile)
-	// copy relevant fields (name, from old message to new
-	newMessage.Name = oldMessage.Name
-	newMessage.Email = oldMessage.Email
-	newMessage.CreationTime = oldMessage.CreationTime
-
-	err = replaceMessageInFileById(newMessage, id, mapIdPos, PathToMessagesFile)
+	id, _ := IdToHex16byte(idStr)
+	err = ReplaceMessageInFileById(newMessage, id, mapIdPos, PathToMessagesFile)
 	if err != nil {
-		log.Println("replace operation of the in-file message failed ")
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "the post requested could not be made"})
-		return
+		log.Println("old message could not be replaced by new message: ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "the edition of the message could not be made"})
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "message was edited successfully"})
 }
 
 func viewOneMessageByPath(c *gin.Context) {
-	pathToFile := PathToMessagesFile
-	mapIdPos, err := fillPositionIndex(pathToFile)
+	mapIdPos, err := fillPositionIndex(PathToMessagesFile)
 	if err != nil {
 		log.Println("indexing of messages failed during request process, ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "the ressource requested cannot be served"})
@@ -203,15 +199,27 @@ func viewOneMessageByPath(c *gin.Context) {
 	}
 
 	idStr := c.Param("id")
-	if idStr != "" {
-		id := idToHex16byte(idStr)
-		if _, ok := (*mapIdPos)[id]; ok {
-			oneMessage := readMessageFromFileById(id, mapIdPos, pathToFile)
-			c.JSON(http.StatusOK, oneMessage)
-			return
-		}
+	if idStr == "" {
+		log.Println("the id of the message requested doesn't exist or is bad formatted")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "the id of the message requested doesn't exist or is bad formatted"})
 	}
-	c.JSON(http.StatusBadRequest, gin.H{"message": "the id of the message requested doesn't exist or is bad formatted"})
+	id, _ := IdToHex16byte(idStr)
+	record, err := ReadMessageFromFileById(id, mapIdPos, PathToMessagesFile)
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "the message requested could not be found"})
+		return
+	}
+	oneMessage, err := NewFromRecord(record)
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "the message requested could not be correctly processed"})
+		return
+	}
+	c.JSON(http.StatusOK, oneMessage)
 }
 
 func appendUniques(a []int64, b []int64) *[]int64 {
