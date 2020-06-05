@@ -18,7 +18,7 @@ The application offers also a websockets communication to
 Existing messages will be preloaded when the application starts, using a CSV file both as a source and as a flat-file 
 database.
 
-Here is a sample of the CSV file: https://drive.google.com/open?id=1sTfQWh58XTHgNy7fq04SPa79HZoTsjD 
+Here is a sample of the CSV file: _deleted_
 
 This file (or a csv file with the same format and name: `messages.csv`) should be placed at the root of the directory 
 from which the application or the docker container is run.
@@ -38,8 +38,7 @@ could have an impact on the performance.
 The sorting of data records is done also by means of these indexes, which don't store non-indexing information like the 
 message text, so that the memory requirements are kept low. 
 
-New messages are appended at the end of the file, provided with an automatically random generated id, that should not
-(probabilistically) collide with pre-existing ids. 
+New messages are appended at the end of the file by hashing.
 
 Editing of a message is accomplished by duplicating the message (this means duplicating its id and cloning all the other
 fields excepting the text), and its text field being updated with a new string (this is in fact the only editable field). 
@@ -52,7 +51,7 @@ in os systems, but also to ensure data coherence and make the system thread safe
 size more than is needed, but we suppose the update operations to keep within reasonable limits. A point for keeping the 
 old messages is to keep a log and to implement a kind of version system.
 
-The records are always identified by a 16 hexadecimal number, that is usually given as a string the following format:
+The records are always identified by their hash, for instance:
 
 `A83087C2-562A-6904-FBA8-A3A7796E712B`
 
